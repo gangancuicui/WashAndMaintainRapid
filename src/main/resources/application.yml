@@ -1,0 +1,23 @@
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+  web:
+    resources:
+      static-locations: classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/,classpath:/public/,file:${web.upload-path}
+
+logging:
+  level:
+    org.springframework.jdbc.support.JdbcTransactionManager: debug
+web:
+  upload-path: D:\projectFIle\washmaintance\
+
+
+mybatis:
+configuration:
+log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+wechat:
+  appId: "wx8f2576b44a8edfd6"
+  appSecret: "553c8350963d569a9c10f457c9bb1641"
+  loginUrl: "https://api.weixin.qq.com/sns/jscode2session"
+

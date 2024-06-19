@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.washmaintance.mapper.WashOrderMapper">
+
+<!--    <resultMap id="BaseResultMap" type="com.washmaintance.pojo.WashOrder">-->
+<!--            <id property="id" column="id" jdbcType="INTEGER"/>-->
+<!--            <result property="openid" column="openid" jdbcType="VARCHAR"/>-->
+<!--            <result property="washDate" column="wash_date" jdbcType="INTEGER"/>-->
+<!--            <result property="washRoom" column="wash_room" jdbcType="INTEGER"/>-->
+<!--            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>-->
+<!--            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>-->
+<!--            <result property="washId" column="wash_id" jdbcType="VARCHAR"/>-->
+<!--            <result property="washStatus" column="wash_status" jdbcType="INTEGER"/>-->
+<!--            <result property="washTel" column="wash_tel" jdbcType="VARCHAR"/>-->
+<!--            <result property="washName" column="wash_name" jdbcType="VARCHAR"/>-->
+<!--    </resultMap>-->
+
+<!--    <sql id="Base_Column_List">-->
+<!--        id,openid,wash_date,-->
+<!--        wash_room,create_time,update_time,-->
+<!--        wash_id,wash_status,wash_tel,-->
+<!--        wash_name-->
+<!--    </sql>-->
+    <resultMap id="ReserveNumMap" type="com.washmaintance.pojo.ReserveNum">
+        <result property="date" column="date" javaType="java.time.LocalDate"/>
+        <result property="startTime" column="start_time" javaType="java.time.LocalTime"/>
+        <result property="endTime" column="end_time" javaType="java.time.LocalTime"/>
+        <result property="count" column="reserved_count"/>
+    </resultMap>
+    <update id="cancelOverdueOrder">
+        update wash_order set wash_status = 4 where id in
+        <foreach collection="list" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </update>
+    <update id="updateWashOrder">
+        update wash_order 
+            <set>
+                <if test="washId != null and washId != ''">
+                    wash_id = #{washId},
+                </if>
+                <if test="washRoomName != null and washRoomName != ''">
+                   wash_room_name = #{washRoomName},
+                </if>
+                <if test="washDate!= null">
+                   wash_date =#{washDate},
+                </if>
+                <if test="wStart != null ">
+                    w_start = #{wStart };
+                </if>
+                <if test="wEnd != null">
+                    w_end= #{wEnd};
+                </if>
+                <if test="washName != null and washName != ''">
+                   wash_name  =#{washName},
+                </if>
+                <if test="washStatus != null">
+                    wash_status = #{washStatus}
+                </if>
+                <if test="washRoom != null">
+                    wash_room = #{washRoom}
+                </if>
+                <if test="washTel != null">
+                    wash_tel = #{washTel}
+                </if>
+            </set>
+                where id = #{id}
+    </update>
+    <delete id="delOrderByIds">
+        delete from wash_order where id in
+        <foreach collection="list" item="id" open="(" close=")" separator=",">
+                 #{id}
+        </foreach>
+    </delete>
+
+    <select id="getReserveNum" resultType="com.washmaintance.pojo.ReserveNum">
+        SELECT
+        t.wdate AS date,
+        t.wstart AS start_time,
+        t.wend AS end_time,
+        t.room AS wash_room,
+        (
+        SELECT COUNT(*) FROM wash_order r
+        WHERE r.wash_date = t.wdate
+        AND r.w_start = t.wstart
+        AND r.w_end = t.wend
+        AND r.wash_room = t.room
+        ) AS count
+        FROM (
+        <foreach collection="scheduleList" item="schedule" separator="UNION ALL">
+            <foreach collection="schedule.wSchedule" item="timeSlot" separator="UNION ALL">
+                SELECT
+                '${schedule.date}' AS wdate,
+                TIME('${timeSlot.wStart}') AS wstart,
+                TIME('${timeSlot.wEnd}') AS wend,
+                '${timeSlot.wRoom}' AS room
+            </foreach>
+        </foreach>
+        <if test="scheduleList == null or scheduleList.isEmpty()">
+            SELECT NULL AS wdate, NULL AS wstart, NULL AS wend
+            UNION ALL
+            SELECT NULL, NULL, NULL
+        </if>
+        ) t
+    </select>
+    <select id="getOrder" resultType="com.washmaintance.pojo.WashOrder">
+        select * from wash_order
+            <where>
+                <if test=" washId !=null and washId !='' ">
+                    wash_id=#{washId}
+                </if>
+                <if test="openid !=null and openid !=''">
+                    and openid=#{openid}
+                </if>
+                <if test="washStatus !=null and washStatus !=''">
+                    and wash_status=#{washStatus}
+                 </if>
+                <if test="wStart !=null ">
+                    and  w_start=#{wStart}
+                </if>
+                <if test="wEnd !=null ">
+                    and  w_End=#{wEnd}
+                </if>
+                <if test="washRoom !=null and washRoom !=''">
+                    and  wash_room=#{washRoom}
+                </if>
+            </where>
+
+    </select>
+    <select id="getWashOrderList" resultType="com.washmaintance.pojo.WashOrderBean">
+        select wash_date, wash_order.create_time, wash_id, wash_status, w_start, w_end,wash_room.w_name as WashName ,wash_room.pic as pic
+        from wash_order left join wash_room on wash_order.wash_room=wash_room.id
+        where openid=#{openid}
+        <if test="washStatus==1 or washStatus==2">
+            and wash_status=#{washStatus}
+        </if>
+        <if test="washStatus==3 or washStatus== 4">
+            and (wash_status=3 or wash_status=4)
+        </if>
+    </select>
+    <select id="getAllOrder" resultType="com.washmaintance.pojo.WashOrder">
+        select * from wash_order
+        <where>
+            <if test="washId != null and washId != ''">
+                wash_id = #{washId}
+            </if>
+            <if test="washRoomName != null and washRoomName != ''">
+                and wash_room_name = #{washRoomName}
+            </if>
+            <if test="washDateStart!= null">
+                and  wash_date >= #{washDateStart}
+            </if>
+            <if test=" washDateEnd != null">
+                and wash_date &lt;= #{washDateEnd}
+            </if>
+            <if test="washDateTimeStart != null ">
+                and w_start >= #{washDateTimeStart}
+            </if>
+            <if test="washDateTimeEnd != null">
+                and w_end &lt;= #{washDateTimeEnd}
+            </if>
+            <if test="washName != null and washName != ''">
+                and wash_name like concat('%', #{washName}, '%')
+            </if>
+            <if test="washStatus != null">
+                and wash_status = #{washStatus}
+            </if>
+        </where>
+    </select>
+
+
+</mapper>
